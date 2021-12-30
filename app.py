@@ -84,7 +84,7 @@ def show_user_account(username):
     flash("user is not available", "danger")
     return redirect("/")
 
-@app.route("/users/<username>/delete", methods=["POST"])
+@app.route("/users/<username>/delete", methods=["GET", "POST"])
 def delete_user(username):
     if "user_id" not in session:
         flash("you must be logged in to delete yourself","danger")
@@ -95,12 +95,13 @@ def delete_user(username):
         flash(f"you are not permitted to delete {username}","danger")
         return redirect("/")
     
+    username = user.username 
     Feedback.query.filter(Feedback.username == username).delete()
     db.session.commit()
     User.query.filter(User.id == session["user_id"]).delete()
-    db.session.commit
+    db.session.commit()
     session.pop("user_id")
-    flash(user.username +"is deleted","warning")
+    flash(username +" is deleted","warning")
     return redirect("/")
     
 @app.route("/users/<username>/feedback/add", methods=["GET", "POST"])
@@ -121,3 +122,49 @@ def handleAddFeedback(username):
         return redirect(f"/users/{user.username}")
         
     return render_template("feedback-form.html", form=form)
+
+@app.route("/feedback/<int:feedback_id>/update", methods=["GET", "POST"])
+def edit_feedback(feedback_id):
+    if "user_id" not in session:
+        flash("you must be logged in to delete yourself","danger")
+        return redirect("/")
+    
+    user = User.query.filter(User.id == session["user_id"]).first()
+    feedback = Feedback.query.get_or_404(feedback_id)
+    
+    if user.username != feedback.username:
+        flash(f"you are not permitted to update this feedback","danger")
+        return redirect("/")
+    
+    if feedback:
+        form = FeedbackForm(obj=feedback)
+        if form.validate_on_submit():
+            feedback.title = form.title.data
+            feedback.content = form.content.data
+            db.session.commit()
+            user = User.query.filter(User.id == session["user_id"]).first()
+            flash("feedback updated", "info")
+            return redirect(f"/users/{user.username}")
+        else:
+            return render_template("edit-feedback-form.html", form=form)
+        
+    else:
+        flash("invalid url", "danger")
+        return redirect("/")
+        
+@app.route("/feedback/<int:feedback_id>/delete")
+def delete_feedback(feedback_id):
+    if "user_id" not in session:
+        flash("you must be logged in to delete yourself","danger")
+        return redirect("/")
+    
+    user = User.query.filter(User.id == session["user_id"]).first()
+    feedback = Feedback.query.get_or_404(feedback_id)
+    if user.username != feedback.username:
+        flash(f"you are not permitted to delete this feedback","danger")
+        return redirect("/")
+    
+    Feedback.query.filter(Feedback.id == feedback_id).delete()
+    db.session.commit()
+    flash("feedback deleted", "info")
+    return redirect(f"/users/{user.username}")
