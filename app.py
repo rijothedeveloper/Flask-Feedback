@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, session
+from flask import Flask, render_template, redirect, session, flash
 from flask_debugtoolbar import DebugToolbarExtension
 from models.models import db, connect_db, User
 from forms.forms import UserForm, LoginForm
@@ -34,6 +34,7 @@ def register_user():
             db.session.add(new_user)
             db.session.commit()
             session["user_id"] = new_user.id
+            flash(f"User registered", "success")
             return redirect("/secret")
         
     return render_template("register-form.html", form=form)
@@ -50,11 +51,21 @@ def login_user():
         user = User.authenticate(username, password)
         
         if user:
-            session["user-id"] = user.id
+            session["user_id"] = user.id
+            flash(f"welcom back {user.username}", "success")
             return redirect("/secret")
         
     return render_template("login-form.html", form=form)
 
+@app.route("/logout")
+def logout():
+    session.pop("user_id")
+    flash("logged out successfully","info")
+    return redirect("/")
+
 @app.route("/secret")
 def show_secret():
+    if "user_id" not in session:
+        flash("you must be logged in to view","danger")
+        return redirect("/")
     return render_template("secret.html")
