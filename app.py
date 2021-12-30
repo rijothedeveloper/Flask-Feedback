@@ -35,7 +35,7 @@ def register_user():
             db.session.commit()
             session["user_id"] = new_user.id
             flash(f"User registered", "success")
-            return redirect("/secret")
+            return redirect(f"/users/{new_user.username}")
         
     return render_template("register-form.html", form=form)
 
@@ -53,7 +53,7 @@ def login_user():
         if user:
             session["user_id"] = user.id
             flash(f"welcom back {user.username}", "success")
-            return redirect("/secret")
+            return redirect(f"/users/{user.username}")
         
     return render_template("login-form.html", form=form)
 
@@ -69,3 +69,16 @@ def show_secret():
         flash("you must be logged in to view","danger")
         return redirect("/")
     return render_template("secret.html")
+
+@app.route("/users/<username>")
+def show_user_account(username):
+    if "user_id" not in session:
+        flash("you must be logged in to view","danger")
+        return redirect("/")
+    
+    user = User.query.filter(User.username == username).first()
+    if(user):
+        return render_template("user-info.html", user=user)
+    
+    flash("user is not available", "danger")
+    return redirect("/")
