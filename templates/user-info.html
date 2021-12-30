@@ -7,4 +7,22 @@
     <p> <h3>Email: </h3>{{user.email}} </p>
     <p> <h3>First name: </h3>{{user.first_name}} </p>
     <p> <h3>Last name: </h3>{{user.last_name}} </p>
+
+    <h2>Feedbacks</h2>
+
+    {% for feedback in feedbacks%}
+        <div class="card" style="width: 18rem;">
+            <div class="card-body">
+            <h5 class="card-title">{{feedback.title}}</h5>
+            <p class="card-text">{{feedback.content}}</p>
+            <a href="#" class="btn btn-primary">edit</a>
+            <a href="#" class="btn btn-primary">delete</a>
+            </div>
+        </div>
+    {% endfor %}
+
+      <p>
+        <a href="/users/{{user.username}}/feedback/add" class="btn btn-primary">Add Feedback</a>
+      </p>
+    
 {% endblock %}

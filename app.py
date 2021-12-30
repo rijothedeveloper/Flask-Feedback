@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, session, flash
 from flask_debugtoolbar import DebugToolbarExtension
-from models.models import db, connect_db, User
-from forms.forms import UserForm, LoginForm
+from models.models import db, connect_db, User, Feedback
+from forms.forms import UserForm, LoginForm, FeedbackForm
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "oh-so-secret"
@@ -78,7 +78,46 @@ def show_user_account(username):
     
     user = User.query.filter(User.username == username).first()
     if(user):
-        return render_template("user-info.html", user=user)
+        feedbacks = Feedback.query.filter(Feedback.username == user.username).all()
+        return render_template("user-info.html", user=user, feedbacks=feedbacks)
     
     flash("user is not available", "danger")
     return redirect("/")
+
+@app.route("/users/<username>/delete", methods=["POST"])
+def delete_user(username):
+    if "user_id" not in session:
+        flash("you must be logged in to delete yourself","danger")
+        return redirect("/")
+    
+    user = User.query.filter(User.id == session["user_id"]).first()
+    if user.username != username:
+        flash(f"you are not permitted to delete {username}","danger")
+        return redirect("/")
+    
+    Feedback.query.filter(Feedback.username == username).delete()
+    db.session.commit()
+    User.query.filter(User.id == session["user_id"]).delete()
+    db.session.commit
+    session.pop("user_id")
+    flash(user.username +"is deleted","warning")
+    return redirect("/")
+    
+@app.route("/users/<username>/feedback/add", methods=["GET", "POST"])
+def handleAddFeedback(username):
+    if "user_id" not in session:
+        flash("you must be logged in to delete yourself","danger")
+        return redirect("/")
+    form = FeedbackForm()
+    
+    if form.validate_on_submit():
+        title = form.title.data
+        content = form.content.data
+        user = User.query.filter(User.id == session["user_id"]).first()
+        feedback = Feedback(title=title, content=content, username=user.username)
+        db.session.add(feedback)
+        db.session.commit()
+        flash("feed back added successfully", "success")
+        return redirect(f"/users/{user.username}")
+        
+    return render_template("feedback-form.html", form=form)
